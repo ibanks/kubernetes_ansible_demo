@@ -1,0 +1,12 @@
+network:
+    version: 2
+    ethernets:
+        {{ ansible_default_ipv4.interface }}:
+            dhcp4: false
+            addresses:
+                - {{ ansible_default_ipv4.address }}/24
+            routes:
+                - to: default
+                  via: {{ ansible_default_ipv4.gateway }}
+            nameservers:
+                addresses: [8.8.8.8, 75.75.75.75]
