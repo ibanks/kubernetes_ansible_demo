@@ -1,3 +1,7 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for system_setup
+
+# open vswitch is needed for networking purposes on the ubuntu 22.04 lts system
+- include_tasks: openvswitch.yml
+  when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "22.04" 

@@ -1,0 +1,12 @@
+---
+# open vswitch is needed for networking purposes on the ubuntu 22.04 lts system
+- name: install open vswitch
+  ansible.builtin.apt:
+    name: openvswitch-switch
+
+# enable and start the open vswitch service
+- name: start open vswitch
+  ansible.builtin.systemd_service:
+    name: openvswitch-switch
+    enabled: true
+    state: started

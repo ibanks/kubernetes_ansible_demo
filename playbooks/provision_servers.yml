@@ -2,4 +2,4 @@
 - hosts: cluster
   become: yes
   roles:
-    - system_upgrade
+    - system_setup
