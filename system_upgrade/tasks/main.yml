@@ -1,0 +1,17 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for system_upgrade
+
+
+- name: Update system packages
+  ansible.builtin.apt:
+    name: "*"
+    state: latest
+
+- name: Upgrade the OS (apt-get dist-upgrade)
+  ansible.builtin.apt:
+    upgrade: dist
+  register: upgrade_output
+  changed_when: no_upgrades_found not in upgrade_output.stdout 
+  notify:
+    - system restart

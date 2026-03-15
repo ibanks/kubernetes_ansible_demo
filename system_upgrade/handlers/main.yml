@@ -1,0 +1,7 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for system_upgrade
+
+- name: system restart
+  ansible.builtin.reboot:
+    reboot_timeout: 300
