@@ -5,3 +5,30 @@
 # open vswitch is needed for networking purposes on the ubuntu 22.04 lts system
 - include_tasks: openvswitch.yml
   when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "22.04" 
+
+# disable dhcp
+- name: Create static network interface
+  ansible.builtin.template:
+    src: netconf.j2
+    dest: /etc/netplan/01-netcfg.yaml
+    owner: root
+    group: root
+    mode: '0600'
+
+# errors here can be ignored. if the file is not there then it's already renamed
+- name: Rename the current network interface file
+  ansible.builtin.shell:
+    cmd: mv 50-cloud-init.yaml 50-cloud-init.yaml.bk
+    chdir: /etc/netplan
+  ignore_errors: true
+
+# disable cloud-init's network configuration
+- name: disable cloud-init
+  ansible.builtin.copy:
+    dest: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+    content: "network: {config: disabled}"
+
+# activate new interface file that sets a static IP address
+- name: apply new netplan
+  ansible.builtin.shell:
+    cmd: netplan apply
