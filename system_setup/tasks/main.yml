@@ -32,3 +32,10 @@
 - name: apply new netplan
   ansible.builtin.shell:
     cmd: netplan apply
+
+# test that you can still ping the external IP for the machine
+- name: test ping
+  ansible.builtin.shell:
+    cmd: ping -q -c5 {{ ansible_default_ipv4.address }}
+  register: ping_test
+  failed_when: '"5 packets transmitted, 5 received" not in ping_test.stdout'
