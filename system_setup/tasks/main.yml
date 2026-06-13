@@ -40,25 +40,4 @@
   register: ping_test
   failed_when: '"5 packets transmitted, 5 received" not in ping_test.stdout'
 
-# get the original checksum of the fstab file
-- name: get fstab checksum original
-  ansible.builtin.command: sha256sum /etc/fstab
-  register: checksum_original
-
-# disable swap
-- name: Permanently disable swap
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^\/swap\.img(\s+)none(\s+)swap(\s+)sw(\s+)0(\s+)0$'
-    line: '#/swap.img    none    swap    sw    0    0'
-    owner: root
-    group: root
-    mode: '0644'
-
-# get new checksum of fstab file
-- name: get fstab checksum new 
-  ansible.builtin.command: sha256sum /etc/fstab
-  register: checksum_modified
-  changed_when: checksum_original.stdout != checksum_modified.stdout
-  notify:
-    - system restart
+- include_tasks: os_config_tasks.yml

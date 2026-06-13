@@ -1,0 +1,73 @@
+
+# Combine tasks that requires system restart
+- name: Update system files
+  block:
+
+    # get the original checksum of the fstab file
+    - name: get fstab checksum original
+      ansible.builtin.command: sha256sum /etc/fstab
+      register: fstab_original
+
+    # disable swap
+    - name: Permanently disable swap
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^\/swap\.img(\s+)none(\s+)swap(\s+)sw(\s+)0(\s+)0$'
+        line: '#/swap.img    none    swap    sw    0    0'
+        owner: root
+        group: root
+        mode: '0644'
+
+    # get new checksum of fstab file
+    - name: get fstab checksum new 
+      ansible.builtin.command: sha256sum /etc/fstab
+      register: fstab_modified
+
+    # get the original checksum of the load modules file
+    - name: get modules checksum original
+      ansible.builtin.command: sha256sum /etc/modules-load.d/modules.conf
+      register: load_modules_original
+
+    # prepare for crio installation / add br_netfilter module
+    - name: add br_netfilter Linux module
+      ansible.builtin.lineinfile:
+        path: /etc/modules-load.d/modules.conf
+        line: "br_netfilter"
+        insertafter: EOF
+
+    # get new checksum of modules file
+    - name: get modules checksum new 
+      ansible.builtin.command: sha256sum /etc/modules-load.d/modules.conf
+      register: load_modules_modified
+
+    # get the original checksum of the sysctl file
+    - name: get sysctl checksum original
+      ansible.builtin.command: sha256sum /etc/sysctl.conf
+      register: sysctl_original
+
+    # add required sysctl's for networking
+    - name: add networking configs to sysctl file
+      ansible.builtin.blockinfile:
+        path: /etc/sysctl.conf
+        append_newline: true
+        prepend_newline: true
+        block: |
+          net.bridge.bridge-nf-call-iptables = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
+          net.ipv4.ip_forward = 1
+
+    # get new checksum of sysctl file
+    - name: get sysctl checksum new 
+      ansible.builtin.command: sha256sum /etc/sysctl.conf
+      register: sysctl_modified
+
+  always:
+    - name: Trigger reboot handler if anything changed
+      ansible.builtin.debug:
+        msg: "Changes detected"
+      changed_when: >
+        fstab_original.stdout != fstab_modified.stdout or
+        load_modules_original.stdout != load_modules_modified.stdout or
+        sysctl_original.stdout != sysctl_modified.stdout	
+      notify:
+        - system restart
