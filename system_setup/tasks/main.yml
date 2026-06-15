@@ -40,4 +40,40 @@
   register: ping_test
   failed_when: '"5 packets transmitted, 5 received" not in ping_test.stdout'
 
+# group of OS file config tasks that require system reboots
 - include_tasks: os_config_tasks.yml
+
+# install required packages
+- name: Install a list of system packages
+  ansible.builtin.apt:
+    pkg:
+    - software-properties-common 
+    - curl
+
+# check for key rings dir
+- name: Ensure keyrings directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+# download k8 gpg keys
+- name: Download and install Kubernetes apt keyring
+  ansible.builtin.shell: |
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/{{ kubernetes_version }}/deb/Release.key |
+    gpg --batch --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  args:
+    creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+# check apt source dir
+- name: Ensure apt source directory exists
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d
+    state: directory
+    mode: '0755'
+
+- name: add k8 repo to package list
+  ansible.builtin.lineinfile:
+    path: /etc/apt/sources.list.d/kubernetes.list
+    line: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/"{{ kubernetes_version }}"/deb/ /"
+    insertafter: EOF
