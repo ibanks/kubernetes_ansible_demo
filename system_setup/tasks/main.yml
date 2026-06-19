@@ -57,13 +57,7 @@
     state: directory
     mode: '0755'
 
-# download k8 gpg keys
-- name: Download and install Kubernetes apt keyring
-  ansible.builtin.shell: |
-    curl -fsSL https://pkgs.k8s.io/core:/stable:/{{ kubernetes_version }}/deb/Release.key |
-    gpg --batch --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-  args:
-    creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+### Add the Kubernetes repository
 
 # check apt source dir
 - name: Ensure apt source directory exists
@@ -72,8 +66,72 @@
     state: directory
     mode: '0755'
 
+# download k8 gpg keys
+- name: Download and install Kubernetes apt keyring
+  ansible.builtin.shell: |
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/{{ kubernetes_version }}/deb/Release.key |
+    gpg --batch --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  args:
+    creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+# add k8 repo location to package distribution list
 - name: add k8 repo to package list
   ansible.builtin.lineinfile:
     path: /etc/apt/sources.list.d/kubernetes.list
-    line: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/"{{ kubernetes_version }}"/deb/ /"
+    create: true
+    line: deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/{{ kubernetes_version }}/deb/ /
     insertafter: EOF
+
+### Add the CRI-O repository
+
+# download CRI-O gpg keys
+- name: Download and install CRI-O apt keyring
+  ansible.builtin.shell: |
+    curl -fsSL https://download.opensuse.org/repositories/isv:/cri-o:/stable:/{{ crio_version }}/deb/Release.key |
+    gpg --batch --yes --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg
+  args:
+    creates: /etc/apt/keyrings/cri-o-apt-keyring.gpg
+
+# add CRI-O repo location to package distribution list
+- name: add CRI-O repo to package list
+  ansible.builtin.lineinfile:
+    path: /etc/apt/sources.list.d/cri-o.list
+    create: true
+    line: deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://download.opensuse.org/repositories/isv:/cri-o:/stable:/{{ crio_version }}/deb/ /
+    insertafter: EOF
+
+# run update and fix any broken packages
+- name: fix any broken packages 
+  ansible.builtin.apt:
+    update_cache: yes
+    dpkg_options: 'configure,all'
+    state: fixed
+
+# install CRI-O and K8 required packages
+- name: Install a list of system packages
+  ansible.builtin.apt:
+    update_cache: yes
+    pkg:
+    - cri-o
+    - kubelet
+    - kubeadm
+    - kubectl
+
+# Add main cni config location to CRI-O config
+- name: Add cni network config file location
+  ansible.builtin.blockinfile:
+    path: /etc/crio/crio.conf.d/00-plugin-dir.conf
+    create: true
+    insertafter: EOF
+    block: |
+      [crio.network]
+      plugin_dirs = [
+        "/etc/cni/net.d/",
+      ]
+
+# start the crio-o service
+- name: start the cri-o service
+  ansible.builtin.systemd_service:
+    name: crio.service
+    enabled: true
+    state: started
