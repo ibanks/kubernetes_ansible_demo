@@ -129,9 +129,16 @@
         "/etc/cni/net.d/",
       ]
 
-# start the crio-o service
+# start and enable the crio-o service
 - name: start the cri-o service
   ansible.builtin.systemd_service:
     name: crio.service
+    enabled: true
+    state: started
+
+# start and enable the kubelet service
+- name: start the kubelet service
+  ansible.builtin.systemd_service:
+    name: kubelet.service
     enabled: true
     state: started
