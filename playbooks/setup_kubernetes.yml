@@ -8,7 +8,12 @@
       ansible.builtin.file:
         path: /etc/cni/net.d
         state: directory
- 
+
+    # Input a check here to test if kubernetes has already been installed and initialized
+    # also as a part of that check wrap the initialization tasks within a block statement
+    # and only execute the tasks if kubernetes has not already been installed
+
+
     - name: Initialize kubeadm
       ansible.builtin.command: kubeadm init
       register: kubeadm_output
@@ -19,3 +24,12 @@
       ansible.builtin.debug:
         msg: "kubeadm successfully initialized"
       when: "'Your Kubernetes control-plane has initialized successfully' in kubeadm_output.stdout"
+
+    - name: output join instructions
+      ansible.builtin.debug:
+        msg: "{{ kubeadm_output.stdout }}"
+
+    - name: create kube config folder
+      become: true
+      become_user: banks
+      ansible.builtin.command: mkdir -p $HOME/.kube
