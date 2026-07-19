@@ -116,6 +116,7 @@
     - kubelet
     - kubeadm
     - kubectl
+    - acl
 
 # Add main cni config location to CRI-O config
 - name: Add cni network config file location
