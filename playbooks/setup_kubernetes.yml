@@ -2,39 +2,36 @@
 
 - name: Setup kubernetes cluster
   hosts: control_nodes
+  become: true
+  become_user: root
   vars:
     join_error_message: "error: failed to load admin kubeconfig: open /root/.kube/config: no such file or directory"
   tasks:
     # check if kubeadm is initialized / using print token statement
     - name: check if kubeadm is initialized
-      become: true
-      become_user: root
       ansible.builtin.command: kubeadm token create --print-join-command
+      ignore_errors: true
       register: kubeadm_status
 
-    # initialize cluster
-    - name: initialize cluster with kubeadm
-      become: true
-      become_user: root
-      block:
-        # check cni directory used for cni service (weave, calico...etc)
-        - name: Ensure cni directory exists
-          ansible.builtin.file:
-            path: /etc/cni/net.d
-            state: directory
+    - block:
+      # check cni directory used for cni service (weave, calico...etc)
+      - name: Ensure cni directory exists
+        ansible.builtin.file:
+          path: /etc/cni/net.d
+          state: directory
 
-        - name: Initialize kubeadm
-          ansible.builtin.command: kubeadm init
-          register: kubeadm_output
-          tags:
-          - always
+      - name: Initialize kubeadm
+        ansible.builtin.command: kubeadm init
+        register: kubeadm_output
+        tags:
+        - always
 
-        - name: check successful kubeadm initialization
-          ansible.builtin.debug:
-            msg: "kubeadm successfully initialized"
-          when: "'Your Kubernetes control-plane has initialized successfully' in kubeadm_output.stdout"
+      - name: check successful kubeadm initialization
+        ansible.builtin.debug:
+          msg: "kubeadm successfully initialized"
+        when: "'Your Kubernetes control-plane has initialized successfully' in kubeadm_output.stdout"
 
-        - name: output join instructions
-          ansible.builtin.debug:
-            msg: "{{ kubeadm_output.stdout }}"
-      when: "{{ join_error_message }} in {{ kubeadm_status.stdout }}" 
+      - name: output join instructions
+        ansible.builtin.debug:
+          msg: "{{ kubeadm_output.stdout }}"
+      when: join_error_message in kubeadm_status.stderr
