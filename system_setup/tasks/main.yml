@@ -127,7 +127,7 @@
     block: |
       [crio.network]
       plugin_dirs = [
-        "/etc/cni/net.d/",
+        "/opt/cni/bin/",
       ]
 
 # start and enable the crio-o service
