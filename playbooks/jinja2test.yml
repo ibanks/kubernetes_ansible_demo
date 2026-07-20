@@ -1,6 +1,0 @@
----
-
-- hosts: 127.0.0.1
-  tasks:
-    - name: Test jinja2template
-      template: src=netconf.j2 dest=test.conf
